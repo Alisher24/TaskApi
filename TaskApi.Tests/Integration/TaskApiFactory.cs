@@ -11,7 +11,7 @@ using TaskApi.Messaging;
 
 namespace TaskApi.Tests.Integration;
 
-public class TaskApiFactory(IntegrationSettings settings) : WebApplicationFactory<Program>
+internal class TaskApiFactory(IntegrationSettings settings) : WebApplicationFactory<Program>
 {
     private readonly string _databaseName = $"taskapi_tests_{Guid.NewGuid():N}";
     private bool _databaseCreated;
