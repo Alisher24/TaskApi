@@ -1,6 +1,38 @@
 @TaskApi_HostAddress = http://localhost:5126
 
-GET {{TaskApi_HostAddress}}/weatherforecast/
+### Create a task (default priority: Medium)
+POST {{TaskApi_HostAddress}}/tasks
+Content-Type: application/json
+
+{
+  "title": "Implement the task API"
+}
+
+### Create a task with a priority
+POST {{TaskApi_HostAddress}}/tasks
+Content-Type: application/json
+
+{
+  "title": "Check validation",
+  "priority": "High"
+}
+
+### Get all tasks
+GET {{TaskApi_HostAddress}}/tasks
 Accept: application/json
 
-###
+### Delete a task - use an id from the POST or GET response
+@taskId = 00000000-0000-0000-0000-000000000000
+DELETE {{TaskApi_HostAddress}}/tasks/{{taskId}}
+
+### Validation error: 400
+POST {{TaskApi_HostAddress}}/tasks
+Content-Type: application/json
+
+{
+  "title": "   ",
+  "priority": 3
+}
+
+### Invalid Guid: 400
+DELETE {{TaskApi_HostAddress}}/tasks/not-a-guid
