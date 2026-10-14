@@ -1,4 +1,11 @@
+using Microsoft.EntityFrameworkCore;
+using TaskApi.Data;
+
 var builder = WebApplication.CreateBuilder(args);
+
+var connectionString = builder.Configuration.GetConnectionString("TaskDb")
+    ?? throw new InvalidOperationException("Connection string 'TaskDb' is not configured.");
+builder.Services.AddDbContext<TaskDbContext>(options => options.UseNpgsql(connectionString));
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
