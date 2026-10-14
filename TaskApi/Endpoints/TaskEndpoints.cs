@@ -14,6 +14,7 @@ public static class TaskEndpoints
 
         group.MapPost("", CreateTask).WithName("CreateTask");
         group.MapGet("", GetTasks).WithName("GetTasks");
+        group.MapPut("/{id}/complete", CompleteTask).WithName("CompleteTask");
         group.MapDelete("/{id}", DeleteTask).WithName("DeleteTask");
 
         return group;
@@ -63,6 +64,46 @@ public static class TaskEndpoints
     {
         var tasks = await db.Tasks.AsNoTracking().ToListAsync(cancellationToken);
         return TypedResults.Ok(tasks.Select(TaskResponse.FromTask).ToArray());
+    }
+
+    private static async Task<Results<Ok<TaskResponse>, NotFound, Conflict, ValidationProblem>> CompleteTask(
+        string id,
+        TaskDbContext db,
+        CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(id, out var taskId))
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["id"] = ["Id must be a valid Guid."]
+            });
+        }
+
+        var task = await db.Tasks.SingleOrDefaultAsync(task => task.Id == taskId, cancellationToken);
+
+        if (task is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (task.IsCompleted)
+        {
+            return TypedResults.Conflict();
+        }
+
+        task.IsCompleted = true;
+        task.CompletedAt = DateTime.UtcNow;
+
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return TypedResults.Conflict();
+        }
+
+        return TypedResults.Ok(TaskResponse.FromTask(task));
     }
 
     private static async Task<Results<NoContent, NotFound, ValidationProblem>> DeleteTask(
