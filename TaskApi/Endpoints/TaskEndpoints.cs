@@ -1,7 +1,9 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using TaskApi.Contracts;
 using TaskApi.Data;
+using TaskApi.Messaging;
 using TaskApi.Models;
 
 namespace TaskApi.Endpoints;
@@ -69,6 +71,8 @@ public static class TaskEndpoints
     private static async Task<Results<Ok<TaskResponse>, NotFound, Conflict, ValidationProblem>> CompleteTask(
         string id,
         TaskDbContext db,
+        ITaskEventPublisher publisher,
+        ILoggerFactory loggerFactory,
         CancellationToken cancellationToken)
     {
         if (!Guid.TryParse(id, out var taskId))
@@ -101,6 +105,20 @@ public static class TaskEndpoints
         catch (DbUpdateConcurrencyException)
         {
             return TypedResults.Conflict();
+        }
+
+        var message = new TaskCompletedEvent(task.Id, task.Title, task.CompletedAt.Value, task.Priority);
+        try
+        {
+            await publisher.PublishAsync(message, cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            loggerFactory.CreateLogger(typeof(TaskEndpoints).FullName!).LogError(
+                exception,
+                "Task {TaskId} was completed, but event publication failed. Message: {Message}",
+                task.Id,
+                JsonSerializer.Serialize(message, TaskEventJson.Options));
         }
 
         return TypedResults.Ok(TaskResponse.FromTask(task));
