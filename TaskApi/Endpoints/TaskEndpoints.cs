@@ -110,7 +110,8 @@ public static class TaskEndpoints
         var message = new TaskCompletedEvent(task.Id, task.Title, task.CompletedAt.Value, task.Priority);
         try
         {
-            await publisher.PublishAsync(message, cancellationToken);
+            // The database commit has succeeded; a disconnected client must not cancel the event.
+            await publisher.PublishAsync(message, CancellationToken.None);
         }
         catch (Exception exception)
         {

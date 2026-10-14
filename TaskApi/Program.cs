@@ -8,15 +8,25 @@ using TaskApi.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("TaskDb")
-    ?? throw new InvalidOperationException("Connection string 'TaskDb' is not configured.");
-builder.Services.AddDbContext<TaskDbContext>(options => options.UseNpgsql(connectionString));
-builder.Services.ConfigureHttpJsonOptions(options =>
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<Priority>()));
-builder.Services.AddOptions<RabbitMqOptions>()
+                       ?? throw new InvalidOperationException("Connection string 'TaskDb' is not configured.");
+builder.Services
+    .AddDbContext<TaskDbContext>(options => options.UseNpgsql(connectionString));
+builder.Services
+    .ConfigureHttpJsonOptions(options =>
+        options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<Priority>()));
+builder.Services
+    .AddOptions<RabbitMqOptions>()
     .Bind(builder.Configuration.GetSection(RabbitMqOptions.SectionName))
     .ValidateDataAnnotations()
     .ValidateOnStart();
-builder.Services.AddSingleton<ITaskEventPublisher, RabbitMqTaskEventPublisher>();
+builder.Services
+    .AddSingleton<RabbitMqTaskEventPublisher>();
+builder.Services
+    .AddSingleton<ITaskEventPublisher>(services =>
+        services.GetRequiredService<RabbitMqTaskEventPublisher>());
+builder.Services
+    .AddHostedService(services =>
+        services.GetRequiredService<RabbitMqTaskEventPublisher>());
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi

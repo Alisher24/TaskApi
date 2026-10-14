@@ -23,4 +23,7 @@ public class RabbitMqOptions
 
     [Range(1, 30)]
     public int PublishTimeoutSeconds { get; set; }
+
+    [Range(3, 5)]
+    public int ShutdownTimeoutSeconds { get; set; } = 5;
 }
